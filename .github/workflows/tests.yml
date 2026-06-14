@@ -36,4 +36,8 @@ jobs:
           docker compose -f examples/docker-compose.yaml config --quiet
       - name: Test with pytest
         run: |
-          poetry run pytest -q -s -vv --log-cli-level=INFO --cov=dbt_af --cov-report=term --run-airflow-tasks tests
+          poetry run pytest -q -s -vv --log-cli-level=INFO --cov=dbt_af --cov-report=term tests
+      - name: Run Airflow task smoke
+        if: matrix.python-version == '3.12'
+        run: |
+          timeout 180s poetry run pytest -q -s -vv --log-cli-level=INFO --run-airflow-tasks tests/airflow_dags/test_dag_build.py::test_independent_domains_have_correct_dags
