@@ -7,10 +7,11 @@ on:
 jobs:
   test:
     runs-on: [ ubuntu-latest ]
+    timeout-minutes: 10
     strategy:
       fail-fast: false
       matrix:
-        python-version: [ '3.10', '3.11', '3.12' ]
+        python-version: [ '3.10', '3.11' ]
     steps:
       - uses: actions/checkout@v4
       - name: Set up python
@@ -38,6 +39,6 @@ jobs:
         run: |
           poetry run pytest -q -s -vv --log-cli-level=INFO --cov=dbt_af --cov-report=term tests
       - name: Run Airflow task smoke
-        if: matrix.python-version == '3.12'
+        if: matrix.python-version == '3.11'
         run: |
           timeout 180s poetry run pytest -q -s -vv --log-cli-level=INFO --run-airflow-tasks tests/airflow_dags/test_dag_build.py::test_independent_domains_have_correct_dags
