@@ -241,3 +241,24 @@ you will be prompted to fill out an input form with all required parameters. Bel
   "--flag": ""
 }  
 ```  
+
+Leave this field unchanged, set it to `{}`, or submit it as `null` when no additional dbt CLI options are needed.
+These values are treated as an empty option set.
+
+Custom option names may be written with or without the leading `--`; `profiles-dir` and `--profiles-dir` both become
+`--profiles-dir` in the generated dbt command.
+
+No-op example:
+
+```json
+{}
+```
+
+Custom options example:
+
+```json
+{
+  "profiles-dir": "/tmp/profiles",
+  "--option": "custom-value"
+}
+```

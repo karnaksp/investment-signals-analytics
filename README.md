@@ -10,6 +10,9 @@
 
 # dbt-af: distributed run of dbt models using Airflow
 
+> Fork note: this fork includes a focused reliability contribution for the manual `dbt_run_model` DAG.
+> See [CASE_STUDY.md](CASE_STUDY.md) for the portfolio case and validation details.
+
 ## Overview
 
 **_dbt-af_** is a tool that allows you to run dbt models in a distributed manner using Airflow.
