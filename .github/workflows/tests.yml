@@ -24,6 +24,9 @@ jobs:
       - name: Install project
         run: |
           poetry install --with=dev --all-extras
+      - name: Install Airflow runtime compatibility dependency
+        run: |
+          poetry run python -m pip install setuptools
       - name: Create airflow database
         run: |
           poetry run airflow db migrate
