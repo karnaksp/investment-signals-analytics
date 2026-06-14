@@ -76,8 +76,9 @@ def build_dbt_run_model_bash_extra_options(params: MutableMapping[str, Any]) -> 
         flag_value = params.get(flag_name)
         if flag_value:
             bash_flags.add(f'--{flag_name}')
-    if params.get(OTHER_DBT_CLI_OPTIONS, '') != OTHER_DBT_CLI_OPTIONS_DEFAULT:
-        for option_name, option_value in params.get(OTHER_DBT_CLI_OPTIONS, {}).items():
+    other_dbt_cli_options = params.get(OTHER_DBT_CLI_OPTIONS) or {}
+    if other_dbt_cli_options != OTHER_DBT_CLI_OPTIONS_DEFAULT:
+        for option_name, option_value in other_dbt_cli_options.items():
             option_name = option_name if option_name.startswith('--') else f'--{option_name}'
             bash_options[option_name] = option_value
 
