@@ -27,6 +27,16 @@ To backfill any data interval, you need just to trigger the DAG with the specifi
 ### Single model DAG
 By default `dbt-af` will generate unified DAG with name `<dbt_project_name>_dbt_run_model`. This DAG is made for manual run of a single model. It's useful for debugging or backfilling a single model with specified date interval.
 
+When triggering this DAG manually, you can leave **Extra Arguments** unchanged for a regular rerun/backfill. Empty
+values, `{}`, and `null` are treated as no extra dbt CLI options. Use JSON only when you need custom dbt options:
+
+```json
+{
+  "profiles-dir": "/tmp/profiles",
+  "--option": "custom-value"
+}
+```
+
 To turn off just set `include_single_model_manual_dag` to `False` in the `dbt-af` configuration.
 ```python
 from dbt_af.conf import Config

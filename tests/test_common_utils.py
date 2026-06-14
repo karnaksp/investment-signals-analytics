@@ -38,3 +38,10 @@ def test_build_dbt_run_model_bash_extra_options_keeps_custom_other_options():
         '--profiles-dir': '/tmp/profiles',
     }
     assert bash_flags == set()
+
+
+def test_build_dbt_run_model_bash_extra_options_ignores_missing_other_options_key():
+    bash_options, bash_flags = build_dbt_run_model_bash_extra_options({})
+
+    assert bash_options == {}
+    assert bash_flags == set()
