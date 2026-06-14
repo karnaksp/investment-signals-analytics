@@ -27,6 +27,10 @@
 #                                Default: apache/airflow:2.5.3
 # AIRFLOW_UID                  - User ID in Airflow containers
 #                                Default: 50000
+# AIRFLOW_WEBSERVER_HOST_PORT  - Host port for Airflow Webserver.
+#                                Default: 8080
+# POSTGRES_HOST_PORT           - Host port for Postgres.
+#                                Default: 5432
 # AIRFLOW_PROJ_DIR             - Base path to which all the files will be volumed.
 #                                Default: .
 # Those configurations are useful mostly in case of standalone testing/running Airflow in test/try-out mode
@@ -43,8 +47,6 @@
 #                                Default: ''
 #
 # Feel free to modify this file to suit your needs.
----
-version: '3.8'
 x-airflow-common:
   &airflow-common
   # In order to add custom dependencies or upgrade provider packages you can use your extended image.
@@ -101,7 +103,7 @@ services:
     volumes:
       - postgres-db-volume:/var/lib/postgresql/data
     ports:
-      - "5432:5432"
+      - "${POSTGRES_HOST_PORT:-5432}:5432"
     healthcheck:
       test: [ "CMD", "pg_isready", "-U", "airflow" ]
       interval: 10s
@@ -129,7 +131,7 @@ services:
     <<: *airflow-common
     command: webserver
     ports:
-      - "8080:8080"
+      - "${AIRFLOW_WEBSERVER_HOST_PORT:-8080}:8080"
     healthcheck:
       test: [ "CMD", "curl", "--fail", "http://localhost:8080/health" ]
       interval: 30s
@@ -246,11 +248,10 @@ services:
         fi
         mkdir -p /sources/logs /sources/dags /sources/plugins
         chown -R "${AIRFLOW_UID}:0" /sources/{logs,dags,plugins}
-        exec /entrypoint airflow version
-        
-        airflow db init
-        
-        airflow pools set dbt_dev 128 "dev"
+        /entrypoint airflow version
+        airflow db migrate
+        airflow pools set dbt_dev 4 "dev"
+        airflow pools set dbt_sensor_pool 4 "sensor"
     # yamllint enable rule:line-length
     environment:
       <<: *airflow-common-env

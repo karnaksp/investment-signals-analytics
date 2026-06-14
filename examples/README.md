@@ -11,12 +11,16 @@
     ./build_manifest.sh
     ```
 4. Add `dbt_dev` and `dbt_sensor_pool` [pools](https://airflow.apache.org/docs/apache-airflow/stable/administration-and-deployment/pools.html) to Airflow.
-   
+   The Docker Compose demo creates both pools automatically in `airflow-init`.
+
     - By using Airflow UI ![Airflow Pools](../docs/static/add_new_af_pool.png)
-    - By using Airflow CLI: `airflow pools set dbt_dev 4 "dev"`
+    - By using Airflow CLI:
+      `airflow pools set dbt_dev 4 "dev"` and `airflow pools set dbt_sensor_pool 4 "sensor"`
 
     Start with some small numbers of open slots in pools. 
     If you are using your local machine, a large number of tasks can overflow your machine's resources.
+
+5. To run the local orchestration smoke, use [Running Airflow with Docker](using_docker_compose.md).
 
 ## List of Examples
 1. [Basic Project](basic_project.md): a single domain, small tests, and a single target.
@@ -28,4 +32,3 @@
 7. [Kubernetes tasks](kubernetes_tasks.md): how to run dbt models in Kubernetes.
 8. [Integration with other tools](integration_with_other_tools.md): how to integrate dbt-af with other tools.
 9. [\[Preview\] Extras and scripts](extras_and_scripts.md): available extras and scripts.
-

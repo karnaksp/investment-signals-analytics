@@ -5,8 +5,9 @@
 This repository is a fork of `Toloka/dbt-af`. I use this fork as a focused open-source reliability contribution case,
 not as a claim of ownership over the original project.
 
-The current contribution is intentionally narrow: it hardens the manual `<dbt_project_name>_dbt_run_model` Airflow DAG
-so empty or default Extra Arguments do not break manual dbt runs.
+The current contribution has two parts: it hardens the manual `<dbt_project_name>_dbt_run_model` Airflow DAG so empty
+or default Extra Arguments do not break manual dbt runs, and it makes the local Docker Compose example usable as a
+reproducible orchestration smoke demo.
 
 ## Problem
 
@@ -23,6 +24,9 @@ this field unchanged, clear it to `{}`, or submit `null` through the Airflow UI/
 - Preserved custom options such as `{"profiles-dir": "/tmp/profiles", "--option": "custom-value"}`.
 - Added regression coverage for empty/default input and custom dbt CLI options.
 - Documented the manual DAG behavior in the main configuration docs and the basic project example.
+- Fixed the Docker Compose demo bootstrap so Airflow initialization reaches database migration and pool creation.
+- Added a local smoke script that builds the dbt manifest, starts Airflow, checks DAG discovery, and verifies the manual
+  `dbt_af_project_dbt_run_model` task list.
 
 ## Demo Scenario
 
@@ -52,6 +56,13 @@ Focused local check:
 poetry run pytest -q tests/test_common_utils.py
 ```
 
+Docker Compose demo check:
+
+```bash
+docker compose -f examples/docker-compose.yaml config --quiet
+cd examples && ./smoke_orchestration.sh
+```
+
 Full project check used by CI:
 
 ```bash
@@ -61,5 +72,6 @@ ruff check
 
 ## Portfolio Role
 
-Keep this repository out of the main Data Engineer showcase until it has more than one accepted contribution or a small
-reproducible orchestration demo. It is currently useful as a secondary "open-source reliability fix" case.
+This repository is now useful as a secondary Data Engineering portfolio case: it shows an open-source reliability fix
+plus a reproducible Airflow/dbt orchestration demo. Keep it below production projects, but it no longer needs to be
+hidden as a one-off bugfix fork.
