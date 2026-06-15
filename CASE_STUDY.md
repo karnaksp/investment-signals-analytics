@@ -1,32 +1,28 @@
-# dbt-af Reliability Contribution Case Study
+# dbt-af: надежный manual rerun DAG
 
-## Status
+## Статус
 
-This repository is a fork of `Toloka/dbt-af`. I use this fork as a focused open-source reliability contribution case,
-not as a claim of ownership over the original project.
+Этот репозиторий — fork `Toloka/dbt-af`. Добавленный слой не претендует на ownership исходного проекта; он фиксирует конкретный reliability scenario вокруг ручного запуска dbt-модели через Airflow.
 
-The current contribution has two parts: it hardens the manual `<dbt_project_name>_dbt_run_model` Airflow DAG so empty
-or default Extra Arguments do not break manual dbt runs, and it makes the local Docker Compose example usable as a
-reproducible orchestration smoke demo.
+Текущий слой состоит из двух частей:
 
-## Problem
+- manual `<dbt_project_name>_dbt_run_model` Airflow DAG стал устойчивым к empty/default/null Extra Arguments;
+- локальный Docker Compose example стал воспроизводимым orchestration smoke demo для Airflow/dbt path.
 
-`dbt-af` can generate a manual DAG named `<dbt_project_name>_dbt_run_model`. Data engineers use it to rerun one model,
-backfill a specific interval, or validate a new model without waiting for the regular schedule.
+## Проблема
 
-The manual trigger form includes an **Extra Arguments** field for optional dbt CLI flags. In practice, users often leave
-this field unchanged, clear it to `{}`, or submit `null` through the Airflow UI/API. That path should behave like
-"no extra options", while real custom dbt options should still pass through.
+`dbt-af` умеет генерировать manual DAG `<dbt_project_name>_dbt_run_model`. Data engineers используют его, чтобы rerun-ить одну модель, backfill-ить конкретный interval или проверить новую модель без ожидания regular schedule.
 
-## My Contribution
+Manual trigger form содержит поле **Extra Arguments** для optional dbt CLI flags. На практике пользователи часто оставляют поле без изменений, очищают его до `{}` или отправляют `null` через Airflow UI/API. Такой path должен означать “no extra options”, а реальные custom dbt options должны продолжать проходить в command.
 
-- Fixed `build_dbt_run_model_bash_extra_options` so `None`, `{}`, and the default placeholder are ignored.
-- Preserved custom options such as `{"profiles-dir": "/tmp/profiles", "--option": "custom-value"}`.
-- Added regression coverage for empty/default input and custom dbt CLI options.
-- Documented the manual DAG behavior in the main configuration docs and the basic project example.
-- Fixed the Docker Compose demo bootstrap so Airflow initialization reaches database migration and pool creation.
-- Added a local smoke script that builds the dbt manifest, starts Airflow, checks DAG discovery, and verifies the manual
-  `dbt_af_project_dbt_run_model` task list.
+## Добавленный reliability layer
+
+- Исправлен `build_dbt_run_model_bash_extra_options`: `None`, `{}` и default placeholder игнорируются.
+- Сохранена поддержка custom options вроде `{"profiles-dir": "/tmp/profiles", "--option": "custom-value"}`.
+- Добавлено regression coverage для empty/default input и custom dbt CLI options.
+- Manual DAG behavior задокументирован в main configuration docs и basic project example.
+- Docker Compose demo bootstrap доведен до Airflow database migration и pool creation.
+- Добавлен local smoke script: он builds dbt manifest, starts Airflow, checks DAG discovery и проверяет manual `dbt_af_project_dbt_run_model` task list.
 
 ## Architecture Slice
 
@@ -41,18 +37,16 @@ flowchart LR
     Command --> Smoke["Docker Compose smoke demo"]
 ```
 
-The contribution is intentionally narrow: it keeps the upstream DAG-generation model intact and hardens the manual rerun
-path that data engineers use for one-off model validation, backfills and debugging.
+Слой намеренно узкий: upstream DAG-generation model не переписывается. Исправлен manual rerun path, который data engineers используют для one-off model validation, backfills и debugging.
 
-## Demo Scenario
+## Demo scenario
 
-1. Open the generated `<dbt_project_name>_dbt_run_model` DAG in Airflow.
-2. Fill `Model Selector`, `Interval Start Datetime`, and `Interval End Datetime`.
-3. Leave **Extra Arguments** unchanged, clear it to `{}`, or submit it as `null`.
+1. Открыть generated `<dbt_project_name>_dbt_run_model` DAG в Airflow.
+2. Заполнить `Model Selector`, `Interval Start Datetime` и `Interval End Datetime`.
+3. Оставить **Extra Arguments** без изменений, очистить до `{}` или отправить как `null`.
 4. Trigger the DAG.
-5. Expected behavior: the dbt command is built without extra CLI options and does not fail while iterating over empty
-   optional arguments.
-6. Add custom JSON only when needed:
+5. Expected behavior: dbt command собирается без extra CLI options и не падает при обработке empty optional arguments.
+6. Добавлять custom JSON только когда нужны реальные dbt options:
 
 ```json
 {
@@ -61,8 +55,7 @@ path that data engineers use for one-off model validation, backfills and debuggi
 }
 ```
 
-Expected command behavior: both keys are normalized into dbt CLI options, including the missing `--` prefix for
-`profiles-dir`.
+Expected command behavior: оба key нормализуются в dbt CLI options, включая missing `--` prefix для `profiles-dir`.
 
 ## Validation
 
@@ -86,8 +79,6 @@ poetry run pytest -q -s -vv --log-cli-level=INFO --cov=dbt_af --cov-report=term 
 ruff check
 ```
 
-## Project Role
+## Роль проекта
 
-This repository is a secondary Data Engineering contribution case: it shows an open-source reliability fix plus a
-reproducible Airflow/dbt orchestration demo. It should be presented as a targeted fork contribution, not as an original
-production system.
+Этот fork ограничен manual `dbt_run_model` reliability path и локальным Airflow/dbt orchestration smoke demo. Он не претендует на ownership исходного `Toloka/dbt-af`; ценность слоя в проверяемом исправлении, regression tests и runnable local evidence.

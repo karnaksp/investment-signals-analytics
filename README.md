@@ -8,10 +8,28 @@
 [![Poetry](https://img.shields.io/endpoint?url=https://python-poetry.org/badge/v0.json)](https://python-poetry.org/)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
-# dbt-af: distributed run of dbt models using Airflow
+# dbt-af: надежный manual rerun DAG для dbt через Airflow
 
-> Fork note: this fork includes a focused reliability contribution for the manual `dbt_run_model` DAG.
-> See [CASE_STUDY.md](CASE_STUDY.md) for the reliability scope, reproducible demo and validation details.
+> Fork note: в этом fork добавлен точечный reliability fix для manual `<dbt_project_name>_dbt_run_model` DAG. Пустые, default или `null` Extra Arguments теперь не ломают ручной запуск dbt-модели, а локальный Docker Compose smoke проверяет Airflow/dbt orchestration path. Подробности: [CASE_STUDY.md](CASE_STUDY.md).
+
+## Добавленный reliability layer
+
+Этот fork решает узкий эксплуатационный сценарий для analytics engineering команд:
+
+- data engineer запускает manual `dbt_run_model` DAG из Airflow UI/API;
+- поле **Extra Arguments** оставлено default, очищено до `{}` или приходит как `null`;
+- DAG должен собрать корректный `dbt run` command без дополнительных CLI flags;
+- кастомные dbt options продолжают проходить в command, включая normalization missing `--` prefix.
+
+Проверка:
+
+```bash
+poetry run pytest -q tests/test_common_utils.py
+docker compose -f examples/docker-compose.yaml config --quiet
+cd examples && ./smoke_orchestration.sh
+```
+
+Upstream README ниже сохранен как документация исходного пакета `dbt-af`.
 
 ## Overview
 
