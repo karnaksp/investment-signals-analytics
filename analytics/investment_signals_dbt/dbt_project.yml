@@ -1,0 +1,19 @@
+name: "investment_signals_lightdash"
+version: "0.1.0"
+config-version: 2
+
+profile: "investment_signals_lightdash"
+
+model-paths:
+  - "models"
+
+target-path: "target"
+clean-targets:
+  - "target"
+  - "dbt_packages"
+  - "logs"
+
+models:
+  investment_signals_lightdash:
+    +materialized: table
+

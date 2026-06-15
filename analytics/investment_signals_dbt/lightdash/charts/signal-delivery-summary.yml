@@ -1,0 +1,57 @@
+contentType: sql_chart
+description: Основные показатели по live-сигналам и их доставке.
+name: Сводка по сигналам
+sql: |
+  select
+      count(*) as total_signals,
+      count(*) filter (where trading_decision = 'кандидат') as review_candidates,
+      count(*) filter (where delivery_status = 'delivered') as delivered_signals,
+      count(*) filter (where trading_decision = 'заблокировать_политикой') as policy_blocked_signals,
+      round(avg(quality_score), 1) as avg_quality_score,
+      round(avg(decision_score), 1) as avg_decision_score
+  from investment_signals_analytics.mart_live_trading_watchlist
+limit: 500
+chartKind: table
+config:
+  type: table
+  columns:
+    total_signals:
+      visible: true
+      reference: total_signals
+      label: Всего сигналов
+      frozen: true
+      order: 0
+    review_candidates:
+      visible: true
+      reference: review_candidates
+      label: Кандидатов к проверке
+      frozen: true
+      order: 1
+    delivered_signals:
+      visible: true
+      reference: delivered_signals
+      label: Доставлено
+      frozen: true
+      order: 2
+    policy_blocked_signals:
+      visible: true
+      reference: policy_blocked_signals
+      label: Заблокировано правилами
+      frozen: true
+      order: 3
+    avg_quality_score:
+      visible: true
+      reference: avg_quality_score
+      label: Среднее качество
+      frozen: true
+      order: 4
+    avg_decision_score:
+      visible: true
+      reference: avg_decision_score
+      label: Средняя оценка решения
+      frozen: true
+      order: 5
+slug: signal-delivery-summary
+spaceSlug: investment-signals-analytics
+version: 1
+updatedAt: "2026-06-15T00:00:00.000Z"

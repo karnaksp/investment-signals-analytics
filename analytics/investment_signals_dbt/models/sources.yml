@@ -1,0 +1,27 @@
+version: 2
+
+sources:
+  - name: investment_signals_live
+    description: "Операционные сигналы из Postgres контейнера investment-signals."
+    schema: public
+    tables:
+      - name: market_signals
+        description: "Сигналы рынка, которые пишет сервис investment-signals."
+        columns:
+          - name: signal_id
+            tests:
+              - not_null
+              - unique
+          - name: detected_at
+            tests:
+              - not_null
+          - name: ticker
+            tests:
+              - not_null
+          - name: signal_type
+            tests:
+              - not_null
+          - name: severity
+            tests:
+              - not_null
+

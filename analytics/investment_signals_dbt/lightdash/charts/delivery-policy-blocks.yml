@@ -1,0 +1,60 @@
+contentType: sql_chart
+description: Сильные сигналы, которые не стоит использовать без проверки правил доставки.
+name: Сигналы, ограниченные правилами
+sql: |
+  select
+      ticker,
+      signal_type,
+      count(*) as signal_count,
+      round(avg(quality_score), 1) as avg_quality_score,
+      round(avg(decision_score), 1) as avg_decision_score,
+      max(detected_at) as last_detected_at
+  from investment_signals_analytics.mart_live_trading_watchlist
+  where trading_decision = 'заблокировать_политикой'
+  group by 1, 2
+  order by avg_decision_score desc, signal_count desc
+limit: 500
+chartKind: table
+config:
+  type: table
+  columns:
+    ticker:
+      visible: true
+      reference: ticker
+      label: Тикер
+      frozen: true
+      order: 0
+    signal_type:
+      visible: true
+      reference: signal_type
+      label: Тип сигнала
+      frozen: true
+      order: 1
+    signal_count:
+      visible: true
+      reference: signal_count
+      label: Сигналов
+      frozen: true
+      order: 2
+    avg_quality_score:
+      visible: true
+      reference: avg_quality_score
+      label: Среднее качество
+      frozen: true
+      order: 3
+    avg_decision_score:
+      visible: true
+      reference: avg_decision_score
+      label: Средняя оценка решения
+      frozen: true
+      order: 4
+    last_detected_at:
+      visible: true
+      reference: last_detected_at
+      label: Последний сигнал
+      frozen: true
+      order: 5
+slug: delivery-policy-blocks
+spaceSlug: investment-signals-analytics
+version: 1
+updatedAt: "2026-06-15T00:00:00.000Z"

@@ -1,20 +1,20 @@
 ---
-name: Feature request
-about: Suggest an idea for this project
+name: Улучшение
+about: Предложить улучшение аналитического контура
 title: ''
 labels: ''
 assignees: ''
 
 ---
 
-**Is your feature request related to a problem? Please describe.**
-A clear and concise description of what the problem is. Ex. I'm always frustrated when [...]
+**С какой проблемой связано улучшение?**
+Кратко опишите, какая эксплуатационная или аналитическая задача сейчас решается неудобно.
 
-**Describe the solution you'd like**
-A clear and concise description of what you want to happen.
+**Какое решение нужно?**
+Опишите желаемое поведение, новую витрину, проверку, дашборд или интеграцию.
 
-**Describe alternatives you've considered**
-A clear and concise description of any alternative solutions or features you've considered.
+**Какие альтернативы уже рассматривались?**
+Опишите варианты, которые не подошли или требуют дополнительных ограничений.
 
-**Additional context**
-Add any other context or screenshots about the feature request here.
+**Дополнительный контекст**
+Добавьте ссылки, скриншоты, SQL-примеры или описание данных, если это помогает понять задачу.

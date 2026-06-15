@@ -1,0 +1,120 @@
+contentType: sql_chart
+description: "Короткие операционные выводы по live-сигналам: где риск, что проверять и насколько свежие данные."
+name: Операционные выводы
+sql: |
+  with base as (
+      select *
+      from investment_signals_analytics.mart_live_trading_watchlist
+  ),
+
+  metrics as (
+      select
+          count(*) as total_signals,
+          count(*) filter (where delivery_status = 'delivered') as delivered_signals,
+          count(*) filter (where trading_decision = 'кандидат') as candidate_signals,
+          count(*) filter (
+              where trading_decision = 'заблокировать_политикой'
+                  and quality_score >= 75
+          ) as blocked_strong_signals,
+          round(avg(quality_score), 1) as avg_quality_score,
+          max(detected_at) as last_detected_at
+      from base
+  )
+
+  select
+      1 as sort_order,
+      'Доставка' as focus_area,
+      concat(round(100.0 * delivered_signals / nullif(total_signals, 0), 1), '%') as current_value,
+      'показывает, какая часть сигналов дошла до канала уведомлений' as what_it_means,
+      case
+          when delivered_signals::numeric / nullif(total_signals, 0) < 0.2
+              then 'сначала проверить правила доставки и подавления'
+          else 'поддерживать текущие правила доставки'
+      end as recommended_action
+  from metrics
+
+  union all
+
+  select
+      2,
+      'Сильные блокировки',
+      blocked_strong_signals::text,
+      'сигналы с высоким качеством, которые не прошли политику доставки',
+      case
+          when blocked_strong_signals > 0
+              then 'разобрать эти сигналы вручную до изменения детекторов'
+          else 'критичных блокировок сейчас нет'
+      end
+  from metrics
+
+  union all
+
+  select
+      3,
+      'Кандидаты к проверке',
+      candidate_signals::text,
+      'доставленные сигналы, которые можно разбирать как рабочие идеи',
+      case
+          when candidate_signals > 0
+              then 'начать разбор с рабочего списка ниже'
+          else 'ждать новых доставленных сигналов или ослабить фильтр'
+      end
+  from metrics
+
+  union all
+
+  select
+      4,
+      'Свежесть данных',
+      coalesce(round(extract(epoch from (now() - last_detected_at)) / 60)::text || ' мин', 'нет данных'),
+      'сколько времени прошло с последнего обнаруженного сигнала',
+      case
+          when last_detected_at is null
+              then 'проверить ingest market_signals'
+          when now() - last_detected_at > interval '60 minutes'
+              then 'проверить ingestion и расписание Dagster'
+          else 'данные обновляются достаточно свежо'
+      end
+  from metrics
+  order by sort_order
+limit: 500
+chartKind: table
+config:
+  type: table
+  showResultsTotal: false
+  hideRowNumbers: true
+  columns:
+    sort_order:
+      visible: false
+      reference: sort_order
+      label: Порядок
+      frozen: false
+      order: 0
+    focus_area:
+      visible: true
+      reference: focus_area
+      label: Зона внимания
+      frozen: true
+      order: 1
+    current_value:
+      visible: true
+      reference: current_value
+      label: Сейчас
+      frozen: true
+      order: 2
+    what_it_means:
+      visible: true
+      reference: what_it_means
+      label: Как читать
+      frozen: false
+      order: 3
+    recommended_action:
+      visible: true
+      reference: recommended_action
+      label: Что делать
+      frozen: false
+      order: 4
+slug: operations-insights
+spaceSlug: investment-signals-analytics
+version: 1
+updatedAt: "2026-06-15T00:00:00.000Z"

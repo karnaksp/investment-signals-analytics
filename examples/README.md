@@ -34,52 +34,28 @@
 9. [\[Preview\] Extras and scripts](extras_and_scripts.md): available extras and scripts.
 10. [investment-signals analytics](dags/investment_signals_analytics/README.md): локальный стенд для анализа качества и пользы рыночных сигналов. Поддерживает автономный запуск на seed-данных и связанный запуск поверх Postgres из `investment-signals`.
 
-## Аналитические витрины
+## Аналитический контур investment-signals
 
-В `examples` есть отдельный сервис `analytics-dashboard` на базе Lightdash.
-Он читает dbt-проект, использует описания моделей из `schema.yml` и показывает
-BI-слой поверх готовых dbt-мартов. Для локального self-host запуска рядом
-поднимается MinIO: Lightdash использует его как S3-совместимое хранилище.
+Рабочий dbt/Dagster/Lightdash контур вынесен в корень репозитория:
 
-Запуск:
+- `../analytics/investment_signals_dbt` - dbt-модели и Lightdash dashboard-as-code;
+- `../analytics/dagster` - Dagster job и schedule;
+- `../docker-compose.yml` - локальный запуск dbt, Dagster, Lightdash, MinIO и Lightdash Postgres.
 
-```bash
-cd examples
-POSTGRES_HOST_PORT=15432 \
-AIRFLOW_WEBSERVER_HOST_PORT=18080 \
-ANALYTICS_DASHBOARD_HOST_PORT=18083 \
-docker compose up -d analytics-dashboard
-```
-
-Открыть:
-
-```text
-http://localhost:18083
-```
-
-Первая подключенная витрина:
-
-```text
-http://localhost:18083
-```
-
-При первом запуске Lightdash попросит создать пользователя и проект.
+Основной запуск описан в [корневом README](../README.md). Директория `examples` остается для Airflow-сценариев и
+smoke-проверок orchestration path.
 
 ### Как добавить новую аналитику
 
-1. Добавить dbt-модели в `examples/dags/<service_name>/dbt/models`.
-2. Добавить target/source в `examples/dags/profiles.yml`, если нужна новая база.
-3. Добавить DAG в `examples/dags`, если модели должны запускаться через Airflow.
-4. Описать модели, колонки, измерения и метрики в dbt `schema.yml`.
-5. Обновить проект в Lightdash.
+1. Добавить dbt-модель в `../analytics/investment_signals_dbt/models`.
+2. Описать модель, колонки, тесты и метрики в `../analytics/investment_signals_dbt/models/schema.yml`.
+3. Добавить SQL chart в `../analytics/investment_signals_dbt/lightdash/charts`.
+4. Добавить tile в `../analytics/investment_signals_dbt/lightdash/dashboards/investment-signals-operations.yml`.
+5. Выполнить deploy из корня репозитория:
 
-Файлы Lightdash:
-
-- `examples/lightdash/README.md` — запуск и подключение проекта;
-- `examples/dags/investment_signals_live/dbt/models/.../schema.yml` — описания моделей, измерения и метрики для Lightdash.
-
-Так репозиторий остается универсальным: Airflow оркестрирует dbt, dbt строит
-март-таблицы, а Lightdash строит исследуемый BI-слой из dbt `schema.yml`.
+```bash
+docker compose --profile lightdash --profile deploy run --rm lightdash-deploy
+```
 
 ### Сигналы T-Invest
 

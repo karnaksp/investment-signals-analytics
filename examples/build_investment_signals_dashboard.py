@@ -17,7 +17,7 @@ from typing import Any
 
 
 ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_INVESTMENT_REPO = ROOT.parent / "portfolio-repos" / "investment-signals"
+DEFAULT_INVESTMENT_REPO = ROOT.parent / "investment-signals"
 WATCHLIST_TABLE = (
     'investment_signals_analytics."svc_investment_signals_live.mart_live_trading_watchlist"'
 )

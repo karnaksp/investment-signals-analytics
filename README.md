@@ -1,131 +1,123 @@
-[![PyPI - Version](https://img.shields.io/pypi/v/dbt-af)](https://pypi.org/project/dbt-af/)
-[![GitHub Build](https://github.com/Toloka/dbt-af/workflows/Tests/badge.svg)](https://github.com/Toloka/dbt-af/actions)
+# dbt-af: аналитика live-сигналов
 
-[![License](https://img.shields.io/:license-Apache%202-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0.txt)
-[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/dbt-af.svg)](https://pypi.org/project/dbt-af/)
-[![PyPI - Downloads](https://img.shields.io/pepy/dt/dbt-af)](https://pypi.org/project/dbt-af/)
+`dbt-af` собирает аналитический контур вокруг сервиса
+[`investment-signals`](https://github.com/karnaksp/investment-signals).
 
-[![Poetry](https://img.shields.io/endpoint?url=https://python-poetry.org/badge/v0.json)](https://python-poetry.org/)
-[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+Проект берет live-сигналы из Postgres, строит dbt-витрины, обновляет их через Dagster и показывает готовый
+Lightdash-дашборд для разбора качества сигналов, доставки и ручных действий.
 
-# dbt-af: надежный manual rerun DAG для dbt через Airflow
+![Операционный обзор сигналов](docs/static/product/lightdash-dashboard-overview.jpg)
 
-> Fork note: в этом fork добавлен точечный reliability fix для manual `<dbt_project_name>_dbt_run_model` DAG. Пустые, default или `null` Extra Arguments теперь не ломают ручной запуск dbt-модели, а локальный Docker Compose smoke проверяет Airflow/dbt orchestration path. Подробности: [CASE_STUDY.md](CASE_STUDY.md).
+## Зачем это нужно
 
-## Добавленный reliability layer
+`investment-signals` генерирует рыночные сигналы. Этого мало: нужно понимать, какие из них дошли до уведомлений,
+какие заблокированы правилами доставки, где есть шум и что стоит разобрать вручную.
 
-Этот fork решает узкий эксплуатационный сценарий для analytics engineering команд:
+Этот репозиторий отвечает на четыре практических вопроса:
 
-- data engineer запускает manual `dbt_run_model` DAG из Airflow UI/API;
-- поле **Extra Arguments** оставлено default, очищено до `{}` или приходит как `null`;
-- DAG должен собрать корректный `dbt run` command без дополнительных CLI flags;
-- кастомные dbt options продолжают проходить в command, включая normalization missing `--` prefix.
+- какие сигналы можно проверять прямо сейчас;
+- какие сильные сигналы не дошли до уведомлений;
+- какие типы сигналов стабильнее остальных;
+- где нужно менять правила доставки, а не сами детекторы.
 
-Проверка:
+## Что запускается
+
+```mermaid
+flowchart LR
+    Source["investment-signals<br/>public.market_signals"] --> Dbt["dbt"]
+    Dbt --> Staging["stg_market_signals"]
+    Dbt --> Watchlist["mart_live_trading_watchlist"]
+    Dbt --> Quality["mart_signal_type_quality"]
+    Dagster["Dagster"] --> Dbt
+    Watchlist --> Lightdash["Lightdash dashboard"]
+    Quality --> Lightdash
+```
+
+Основные части:
+
+- `analytics/investment_signals_dbt` - dbt-проект с витринами и тестами.
+- `analytics/dagster` - job и расписание пересчета витрин.
+- `analytics/investment_signals_dbt/lightdash` - дашборд, SQL-чарты и пространство Lightdash как код.
+- `docker-compose.yml` - локальный запуск dbt, Dagster, Lightdash, Postgres Lightdash и MinIO.
+
+## Быстрый запуск
+
+Сначала поднимите `investment-signals`, чтобы его Postgres был доступен на порту `35432`.
 
 ```bash
-poetry run pytest -q tests/test_common_utils.py
-docker compose -f examples/docker-compose.yaml config --quiet
-cd examples && ./smoke_orchestration.sh
+cp .env.example .env
+docker compose run --rm dbt
+docker compose up -d dagster
+docker compose --profile lightdash up -d lightdash
 ```
 
-Upstream README ниже сохранен как документация исходного пакета `dbt-af`.
+Интерфейсы:
 
-## Overview
+- Dagster: [http://localhost:13000](http://localhost:13000)
+- Lightdash: [http://localhost:18083](http://localhost:18083)
+- MinIO: [http://localhost:19001](http://localhost:19001)
 
-**_dbt-af_** is a tool that allows you to run dbt models in a distributed manner using Airflow.
-It acts as a wrapper around the Airflow DAG,
-allowing you to run the models independently while preserving their dependencies.
+## Дашборд
 
-![dbt-af](docs/static/airflow_dag_layout.png)
+Дашборд `Операционный обзор сигналов` показывает:
 
-### Why?
+- операционный вывод: что сейчас ограничивает полезность сигналов;
+- приоритеты действий: разобрать кандидатов, проверить правила доставки, наблюдать или пропустить;
+- воронку доставки;
+- качество типов сигналов;
+- сильные сигналы, заблокированные политикой доставки;
+- рабочий список для ручной проверки.
 
-1. **_dbt-af_** is [domain-driven](https://www.datamesh-architecture.com/#what-is-data-mesh).
-   It is designed to separate models from different domains into different DAGs.
-   This allows you to run models from different domains in parallel.
-2. **_dbt-af_** is **dbt-first** solution.
-   It is designed to make analytics' life easier.
-   End-users could even not know that Airflow is used to schedule their models.
-   dbt-model's config is an entry point for all your settings and customizations.
-3. **_dbt-af_** brings scheduling to dbt. From `@monthly` to `@hourly` and even [more](examples/manual_scheduling.md).
-4. **_dbt-af_** is an ETL-driven tool.
-   You can separate your models into tiers or ETL stages
-   and build graphs showing the dependencies between models within each tier or stage.
-5. **_dbt-af_** brings additional features to use different dbt targets simultaneously, different tests scenarios, and
-   maintenance tasks.
+![Диагностика сигналов](docs/static/product/lightdash-dashboard-diagnostics.jpg)
 
-## Installation
+## Команды
 
-To install `dbt-af` run `pip install dbt-af`.
-
-To contribute we recommend to use `poetry` to install package dependencies. Run `poetry install --with=dev` to install
-all dependencies.
-
-## _dbt-af_ by Example
-
-All tutorials and examples are located in the [examples](examples/README.md) folder.
-
-To get basic Airflow DAGs for your dbt project, you need to put the following code into your `dags` folder:
-
-```python
-# LABELS: dag, airflow (it's required for airflow dag-processor)
-from dbt_af.dags import compile_dbt_af_dags
-from dbt_af.conf import Config, DbtDefaultTargetsConfig, DbtProjectConfig
-
-# specify here all settings for your dbt project
-config = Config(
-    dbt_project=DbtProjectConfig(
-        dbt_project_name='my_dbt_project',
-        dbt_project_path='/path/to/my_dbt_project',
-        dbt_models_path='/path/to/my_dbt_project/models',
-        dbt_profiles_path='/path/to/my_dbt_project',
-        dbt_target_path='/path/to/my_dbt_project/target',
-        dbt_log_path='/path/to/my_dbt_project/logs',
-        dbt_schema='my_dbt_schema',
-    ),
-    dbt_default_targets=DbtDefaultTargetsConfig(default_target='dev'),
-    dry_run=False,  # set to True if you want to turn on dry-run mode
-)
-
-dags = compile_dbt_af_dags(
-   manifest_path='/path/to/my_dbt_project/target/manifest.json', 
-   config=config,
-)
-for dag_name, dag in dags.items():
-    globals()[dag_name] = dag
+```bash
+make dbt-build          # пересчитать dbt-витрины
+make dagster-up         # поднять Dagster
+make lightdash-up       # поднять Lightdash
+make lightdash-validate # проверить Lightdash dashboard-as-code
+make qa                 # compose + dbt tests + Lightdash validation + healthcheck
 ```
 
-In _dbt_project.yml_ you need to set up default targets for all nodes in your project
-(see [example](examples/dags/dbt_project.yml)):
+## Загрузка дашборда в Lightdash
 
-```yaml
-sql_cluster: "dev"
-daily_sql_cluster: "dev"
-py_cluster: "dev"
-bf_cluster: "dev"
+После первого входа в Lightdash создайте Personal Access Token и заполните `.env`:
+
+```dotenv
+LIGHTDASH_API_KEY=...
+LIGHTDASH_PROJECT=...
 ```
 
-This will create Airflow DAGs for your dbt project.
+Затем выполните:
 
-Check out the documentation for more details [here](docs/docs.md).
+```bash
+docker compose --profile lightdash --profile deploy run --rm lightdash-deploy
+```
 
-## Features
+Команда выполнит `dbt build`, загрузит проект в Lightdash и применит dashboard-as-code.
 
-1. **_dbt-af_** is essentially designed to work with large projects (1000+ models).
-   When dealing with a significant number of dbt objects across different domains,
-   it becomes crucial to have all DAGs auto-generated.
-   **_dbt-af_** takes care of this by generating all the necessary DAGs for your dbt project and structuring them by
-   domains.
-2. Each dbt run is separated into a different Airflow task. All tasks receive a date interval from the Airflow DAG
-   context. By using the passed date interval in your dbt models, you ensure the *idempotency* of your dbt runs.
-3. _**dbt-af**_ lowers the entry threshold for non-infrastructure team members.
-   This means that analytics professionals, data scientists,
-   and data engineers can focus on their dbt models and important business logic
-   rather than spending time on Airflow DAGs.
+## Проверки качества
 
-## Project Information
+В репозитории есть:
 
-- [Docs](docs/docs.md)
-- [PyPI](https://pypi.org/project/dbt-af/)
-- [Contributing](CONTRIBUTING.md)
+- dbt tests для источника, staging-слоя и витрин;
+- GitHub Actions workflow `Analytics stack`;
+- валидатор Lightdash YAML: `scripts/validate_lightdash_assets.py`;
+- `.env.example` без секретов;
+- healthcheck для Lightdash;
+- скриншоты готового продукта.
+
+Локально проверено:
+
+```bash
+make qa
+```
+
+## Где смотреть код
+
+- dbt-модели: `analytics/investment_signals_dbt/models`
+- Dagster: `analytics/dagster/definitions.py`
+- Lightdash-чарты: `analytics/investment_signals_dbt/lightdash/charts`
+- Lightdash-дашборд: `analytics/investment_signals_dbt/lightdash/dashboards/investment-signals-operations.yml`
+- подробное описание решения: [CASE_STUDY.md](CASE_STUDY.md)

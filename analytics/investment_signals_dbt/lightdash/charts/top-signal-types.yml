@@ -1,0 +1,70 @@
+contentType: sql_chart
+description: Типы сигналов с максимальным качеством и понятной применимостью.
+name: Лучшие типы сигналов
+sql: |
+  select
+      signal_type,
+      count(*) as signals,
+      count(*) filter (where delivery_status = 'delivered') as delivered,
+      count(*) filter (where trading_decision = 'заблокировать_политикой') as policy_blocked,
+      round(avg(quality_score), 1) as avg_quality_score,
+      round(avg(decision_score), 1) as avg_decision_score
+  from investment_signals_analytics.mart_live_trading_watchlist
+  group by 1
+  order by avg_quality_score desc, signals desc
+  limit 8
+limit: 500
+chartKind: table
+config:
+  type: table
+  showResultsTotal: false
+  hideRowNumbers: true
+  columns:
+    signal_type:
+      visible: true
+      reference: signal_type
+      label: Тип сигнала
+      frozen: true
+      order: 0
+    signals:
+      visible: true
+      reference: signals
+      label: Сигналов
+      frozen: true
+      order: 1
+      displayStyle: bar
+      color: "#64748B"
+    delivered:
+      visible: true
+      reference: delivered
+      label: Доставлено
+      frozen: true
+      order: 2
+      displayStyle: bar
+      color: "#059669"
+    policy_blocked:
+      visible: true
+      reference: policy_blocked
+      label: Блокировано
+      frozen: true
+      order: 3
+      displayStyle: bar
+      color: "#DC2626"
+    avg_quality_score:
+      visible: true
+      reference: avg_quality_score
+      label: Качество
+      frozen: true
+      order: 4
+      displayStyle: bar
+      color: "#7C3AED"
+    avg_decision_score:
+      visible: true
+      reference: avg_decision_score
+      label: Оценка решения
+      frozen: true
+      order: 5
+slug: top-signal-types
+spaceSlug: investment-signals-analytics
+version: 1
+updatedAt: "2026-06-15T00:00:00.000Z"

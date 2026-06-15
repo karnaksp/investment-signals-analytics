@@ -1,0 +1,73 @@
+contentType: sql_chart
+description: Типы сигналов, где качество есть, но доставка мешает использовать результат.
+name: Доставка по типам сигналов
+sql: |
+  select
+      signal_type,
+      count(*) as signals,
+      count(*) filter (where delivery_status = 'delivered') as delivered,
+      count(*) filter (where trading_decision = 'заблокировать_политикой') as policy_blocked,
+      round(100.0 * count(*) filter (where delivery_status = 'delivered') / nullif(count(*), 0), 1) as delivered_pct,
+      round(avg(quality_score), 1) as avg_quality_score
+  from investment_signals_analytics.mart_live_trading_watchlist
+  group by 1
+  having count(*) >= 5
+  order by policy_blocked desc, avg_quality_score desc, signals desc
+  limit 12
+limit: 500
+chartKind: table
+config:
+  type: table
+  showResultsTotal: false
+  hideRowNumbers: true
+  columns:
+    signal_type:
+      visible: true
+      reference: signal_type
+      label: Тип сигнала
+      frozen: true
+      order: 0
+    signals:
+      visible: true
+      reference: signals
+      label: Всего
+      frozen: true
+      order: 1
+      displayStyle: bar
+      color: "#64748B"
+    delivered:
+      visible: true
+      reference: delivered
+      label: Доставлено
+      frozen: true
+      order: 2
+      displayStyle: bar
+      color: "#059669"
+    policy_blocked:
+      visible: true
+      reference: policy_blocked
+      label: Заблокировано
+      frozen: true
+      order: 3
+      displayStyle: bar
+      color: "#DC2626"
+    delivered_pct:
+      visible: true
+      reference: delivered_pct
+      label: Доставка, %
+      frozen: false
+      order: 4
+      displayStyle: bar
+      color: "#2563EB"
+    avg_quality_score:
+      visible: true
+      reference: avg_quality_score
+      label: Качество
+      frozen: false
+      order: 5
+      displayStyle: bar
+      color: "#7C3AED"
+slug: delivery-by-signal-type
+spaceSlug: investment-signals-analytics
+version: 1
+updatedAt: "2026-06-15T00:00:00.000Z"

@@ -1,0 +1,96 @@
+contentType: sql_chart
+description: Какие типы сигналов дают устойчивое качество, а какие требуют наблюдения.
+name: Качество типов сигналов
+sql: |
+  select
+      ticker,
+      signal_type,
+      signal_count,
+      delivered_count,
+      restricted_count,
+      avg_quality_score,
+      avg_abs_z_score,
+      delivered_ratio,
+      quality_status,
+      last_detected_at
+  from investment_signals_analytics.mart_signal_type_quality
+  order by avg_quality_score desc, signal_count desc
+limit: 500
+chartKind: table
+config:
+  type: table
+  showResultsTotal: false
+  hideRowNumbers: true
+  columns:
+    ticker:
+      visible: true
+      reference: ticker
+      label: Тикер
+      frozen: true
+      order: 0
+    signal_type:
+      visible: true
+      reference: signal_type
+      label: Тип сигнала
+      frozen: true
+      order: 1
+    signal_count:
+      visible: true
+      reference: signal_count
+      label: Сигналов
+      frozen: true
+      order: 2
+      displayStyle: bar
+      color: "#64748B"
+    delivered_count:
+      visible: true
+      reference: delivered_count
+      label: Доставлено
+      frozen: true
+      order: 3
+      displayStyle: bar
+      color: "#059669"
+    restricted_count:
+      visible: true
+      reference: restricted_count
+      label: Ограничено
+      frozen: true
+      order: 4
+      displayStyle: bar
+      color: "#DC2626"
+    avg_quality_score:
+      visible: true
+      reference: avg_quality_score
+      label: Среднее качество
+      frozen: true
+      order: 5
+      displayStyle: bar
+      color: "#7C3AED"
+    avg_abs_z_score:
+      visible: true
+      reference: avg_abs_z_score
+      label: Средний |z-score|
+      frozen: true
+      order: 6
+    delivered_ratio:
+      visible: true
+      reference: delivered_ratio
+      label: Доля доставки
+      frozen: true
+      order: 7
+    quality_status:
+      visible: true
+      reference: quality_status
+      label: Статус качества
+      frozen: true
+      order: 8
+    last_detected_at:
+      visible: true
+      reference: last_detected_at
+      label: Последний сигнал
+      frozen: true
+      order: 9
+slug: signal-type-quality
+spaceSlug: investment-signals-analytics
+version: 1
+updatedAt: "2026-06-15T00:00:00.000Z"

@@ -1,6 +1,6 @@
 FROM apache/airflow:2.9.1-python3.10
 
-LABEL maintainer="Nikita Yurasov <nikitayurasov@toloka.ai>"
+LABEL maintainer="Denis Irinyakov"
 SHELL ["/bin/bash", "-o", "pipefail", "-o", "errexit", "-o", "nounset", "-o", "xtrace", "-c"]
 
 USER root

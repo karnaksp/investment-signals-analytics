@@ -1,6 +1,7 @@
-name: Release
+name: Build release artifacts
 
 on:
+  workflow_dispatch:
   release:
     types: [ published ]
 
@@ -33,23 +34,3 @@ jobs:
           name: artifacts
           path: dist/*
           if-no-files-found: error
-
-  publish:
-    name: Publish release
-    needs:
-      - build
-    runs-on: ubuntu-latest
-    environment:
-      name: pypi
-      url: https://pypi.org/p/dbt-af
-    permissions:
-      id-token: write
-
-    steps:
-      - uses: actions/download-artifact@v4
-        with:
-          name: artifacts
-          path: dist
-
-      - name: Push build artifacts to PyPi
-        uses: pypa/gh-action-pypi-publish@release/v1

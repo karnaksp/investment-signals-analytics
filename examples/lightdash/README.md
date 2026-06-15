@@ -1,76 +1,61 @@
-# Lightdash
+# Lightdash для investment-signals
 
-Lightdash используется как готовый BI-слой поверх dbt-мартов.
+Актуальный Lightdash-контур запускается из корня репозитория через `docker-compose.yml`.
+Эта директория оставлена для совместимости со старыми Airflow-примерами; для рабочего продукта используйте
+конфигурацию в `analytics/investment_signals_dbt/lightdash`.
 
-В этом стенде роли разделены так:
-
-- Airflow запускает dbt-модели.
-- dbt строит mart-таблицы в warehouse.
-- Lightdash читает dbt-проект и показывает explores/дашборды поверх моделей.
-- MinIO дает локальное S3-совместимое хранилище, которое требуется Lightdash для self-host запуска.
-
-## Запуск
+## Основной запуск
 
 ```bash
-cd examples
-POSTGRES_HOST_PORT=15432 \
-AIRFLOW_WEBSERVER_HOST_PORT=18080 \
-ANALYTICS_DASHBOARD_HOST_PORT=18083 \
-docker compose up -d analytics-dashboard
+cp .env.example .env
+docker compose run --rm dbt
+docker compose --profile lightdash up -d lightdash
 ```
 
-Открыть:
+Открыть Lightdash:
 
 ```text
 http://localhost:18083
 ```
 
-MinIO console:
+## Deploy dashboard-as-code
 
-```text
-http://localhost:19001
+После создания пользователя в Lightdash создайте Personal Access Token и заполните:
+
+```dotenv
+LIGHTDASH_API_KEY=...
+LIGHTDASH_PROJECT=...
 ```
 
-Локальные учетные данные MinIO по умолчанию:
+Затем выполните:
 
-- login: `minioadmin`
-- password: `minioadmin`
+```bash
+docker compose --profile lightdash --profile deploy run --rm lightdash-deploy
+```
 
-## Подключение проекта
+Команда загрузит:
 
-В UI Lightdash создать проект по локальному dbt-проекту:
+- space `Investment Signals Analytics`;
+- dashboard `Операционный обзор сигналов`;
+- ключевые показатели и диагностические SQL-чарты;
+- detail-таблицы для ручной проверки сигналов.
 
-- dbt project dir: `/opt/dbt-af/dags`
-- profiles dir: `/opt/dbt-af/dags`
-- target: `investment_signals`
-- warehouse: Postgres `investment-signals`
+## Где лежит код дашборда
 
-Эти же значения уже передаются в контейнер:
+```text
+analytics/investment_signals_dbt/lightdash
+├── .space.yml
+├── charts
+└── dashboards
+```
 
-- `DBT_PROJECT_DIR=/opt/dbt-af/dags`
-- `DBT_PROFILES_DIR=/opt/dbt-af/dags`
-- `DBT_TARGET=investment_signals`
+Все SQL-чарты используют технические имена колонок в SQL и русские подписи в `config.columns`.
+Это важно для Lightdash: неполный table config приводит к пустым таблицам или ошибкам отрисовки.
 
-Переменные подключения уже передаются в контейнер:
+## Как добавлять новые панели
 
-- `INVESTMENT_SIGNALS_POSTGRES_HOST`
-- `INVESTMENT_SIGNALS_POSTGRES_PORT`
-- `INVESTMENT_SIGNALS_POSTGRES_DB`
-- `INVESTMENT_SIGNALS_POSTGRES_USER`
-- `INVESTMENT_SIGNALS_POSTGRES_PASSWORD`
-
-Переменные локального S3-хранилища:
-
-- `S3_ENDPOINT=http://minio:9000`
-- `S3_PUBLIC_ENDPOINT=http://localhost:19000`
-- `S3_BUCKET=lightdash`
-- `S3_REGION=us-east-1`
-- `S3_FORCE_PATH_STYLE=true`
-
-## Как добавлять аналитику
-
-1. Добавить dbt-модель в `examples/dags/<service_name>/dbt/models`.
-2. Описать модель и колонки в `schema.yml`.
-3. Добавить Lightdash metadata в dbt `schema.yml`: описания колонок, измерения и метрики.
-4. Запустить dbt build.
-5. Обновить проект в Lightdash.
+1. Добавить или изменить dbt-модель в `analytics/investment_signals_dbt/models`.
+2. Описать модель, тесты и метрики в `schema.yml`.
+3. Добавить SQL chart в `analytics/investment_signals_dbt/lightdash/charts`.
+4. Добавить tile в `analytics/investment_signals_dbt/lightdash/dashboards/investment-signals-operations.yml`.
+5. Выполнить `docker compose --profile lightdash --profile deploy run --rm lightdash-deploy`.

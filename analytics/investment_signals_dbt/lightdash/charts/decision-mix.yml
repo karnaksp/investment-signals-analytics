@@ -1,0 +1,53 @@
+contentType: sql_chart
+description: Как система классифицирует сигналы после правил качества и доставки.
+name: Распределение решений
+sql: |
+  select
+      trading_decision as decision,
+      count(*) as signals,
+      round(100.0 * count(*) / sum(count(*)) over (), 1) as share_pct,
+      round(avg(decision_score), 1) as avg_decision_score
+  from investment_signals_analytics.mart_live_trading_watchlist
+  group by 1
+  order by signals desc
+limit: 500
+chartKind: table
+config:
+  type: table
+  showResultsTotal: false
+  hideRowNumbers: true
+  columns:
+    decision:
+      visible: true
+      reference: decision
+      label: Решение
+      frozen: true
+      order: 0
+    signals:
+      visible: true
+      reference: signals
+      label: Сигналов
+      frozen: true
+      order: 1
+      displayStyle: bar
+      color: "#2563EB"
+    share_pct:
+      visible: true
+      reference: share_pct
+      label: Доля, %
+      frozen: true
+      order: 2
+      displayStyle: bar
+      color: "#059669"
+    avg_decision_score:
+      visible: true
+      reference: avg_decision_score
+      label: Средняя оценка
+      frozen: true
+      order: 3
+      displayStyle: bar
+      color: "#7C3AED"
+slug: decision-mix
+spaceSlug: investment-signals-analytics
+version: 1
+updatedAt: "2026-06-15T00:00:00.000Z"

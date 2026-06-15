@@ -1,0 +1,43 @@
+contentType: sql_chart
+description: Сводка по объему, доставке, качеству и ручной проверке.
+name: Ключевые показатели
+sql: |
+  select 'Всего сигналов' as metric, count(*)::numeric as value, 'обнаружено системой' as note, 1 as sort_order
+  from investment_signals_analytics.mart_live_trading_watchlist
+  union all
+  select 'Доставлено', count(*) filter (where delivery_status = 'delivered')::numeric, 'ушло в канал уведомлений', 2
+  from investment_signals_analytics.mart_live_trading_watchlist
+  union all
+  select 'Кандидаты', count(*) filter (where trading_decision = 'кандидат')::numeric, 'нужны для ручной проверки', 3
+  from investment_signals_analytics.mart_live_trading_watchlist
+  union all
+  select 'Среднее качество', round(avg(quality_score), 1), 'по всем live-сигналам', 4
+  from investment_signals_analytics.mart_live_trading_watchlist
+  order by sort_order
+limit: 500
+chartKind: table
+config:
+  type: table
+  columns:
+    metric:
+      visible: true
+      reference: metric
+      label: Показатель
+      frozen: true
+      order: 0
+    value:
+      visible: true
+      reference: value
+      label: Значение
+      frozen: true
+      order: 1
+    note:
+      visible: true
+      reference: note
+      label: Что означает
+      frozen: true
+      order: 2
+slug: signal-health-kpi
+spaceSlug: investment-signals-analytics
+version: 1
+updatedAt: "2026-06-15T00:00:00.000Z"

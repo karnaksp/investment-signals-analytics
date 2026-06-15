@@ -1,0 +1,203 @@
+name: dbt-af-analytics
+
+x-analytics-env: &analytics-env
+  INVESTMENT_SIGNALS_POSTGRES_HOST: "${INVESTMENT_SIGNALS_POSTGRES_HOST:-host.docker.internal}"
+  INVESTMENT_SIGNALS_POSTGRES_PORT: "${INVESTMENT_SIGNALS_POSTGRES_PORT:-35432}"
+  INVESTMENT_SIGNALS_POSTGRES_DB: "${INVESTMENT_SIGNALS_POSTGRES_DB:-signal_engine}"
+  INVESTMENT_SIGNALS_POSTGRES_USER: "${INVESTMENT_SIGNALS_POSTGRES_USER:-signal_engine}"
+  INVESTMENT_SIGNALS_POSTGRES_PASSWORD: "${INVESTMENT_SIGNALS_POSTGRES_PASSWORD:-signal_engine}"
+  INVESTMENT_SIGNALS_POSTGRES_SCHEMA: "${INVESTMENT_SIGNALS_POSTGRES_SCHEMA:-investment_signals_analytics}"
+
+services:
+  dbt:
+    build:
+      context: .
+      dockerfile: analytics/Dockerfile
+    working_dir: /workspace
+    environment:
+      <<: *analytics-env
+    volumes:
+      - ./analytics/investment_signals_dbt:/workspace
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    command: ["dbt", "build", "--project-dir", ".", "--profiles-dir", ".", "--target", "investment_signals"]
+
+  dagster:
+    build:
+      context: .
+      dockerfile: analytics/Dockerfile
+    working_dir: /app/dagster
+    environment:
+      <<: *analytics-env
+      DAGSTER_HOME: /opt/dagster
+      DBT_PROJECT_DIR: /opt/dbt-af/analytics/investment_signals_dbt
+      DBT_PROFILES_DIR: /opt/dbt-af/analytics/investment_signals_dbt
+      DBT_TARGET: investment_signals
+    volumes:
+      - ./analytics/investment_signals_dbt:/workspace
+      - ./analytics/dagster:/app/dagster:ro
+      - dagster-home-volume:/opt/dagster
+    ports:
+      - "${DAGSTER_HOST_PORT:-13000}:3000"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    command:
+      - /bin/sh
+      - -lc
+      - |
+        mkdir -p "$$DAGSTER_HOME"
+        if [ ! -f "$$DAGSTER_HOME/dagster.yaml" ]; then
+          printf "telemetry:\n  enabled: false\n" > "$$DAGSTER_HOME/dagster.yaml"
+        fi
+        dagster dev -h 0.0.0.0 -p 3000 -f definitions.py
+
+  lightdash:
+    image: "${LIGHTDASH_IMAGE:-lightdash/lightdash:0.3161.0}"
+    # Lightdash пока публикует локальный образ только под amd64, на Apple Silicon он идет через эмуляцию.
+    platform: "${LIGHTDASH_PLATFORM:-linux/amd64}"
+    profiles:
+      - lightdash
+    mem_limit: "${LIGHTDASH_MEM_LIMIT:-768m}"
+    cpus: "${LIGHTDASH_CPUS:-1.0}"
+    environment:
+      PGHOST: lightdash-db
+      PGPORT: 5432
+      PGUSER: lightdash
+      PGPASSWORD: "${LIGHTDASH_POSTGRES_PASSWORD:-lightdash}"
+      PGDATABASE: lightdash
+      LIGHTDASH_SECRET: "${LIGHTDASH_SECRET:-local-lightdash-secret-change-me}"
+      SECURE_COOKIES: "false"
+      TRUST_PROXY: "false"
+      SITE_URL: "http://localhost:${LIGHTDASH_HOST_PORT:-18083}"
+      PORT: 8080
+      NODE_OPTIONS: "${LIGHTDASH_NODE_OPTIONS:---max-old-space-size=384}"
+      SCHEDULER_ENABLED: "false"
+      DBT_PROJECT_DIR: /workspace
+      DBT_PROFILES_DIR: /workspace
+      DBT_TARGET: investment_signals
+      S3_ENDPOINT: http://minio:9000
+      S3_PUBLIC_ENDPOINT: "http://localhost:${MINIO_API_HOST_PORT:-19000}"
+      S3_BUCKET: lightdash
+      S3_REGION: us-east-1
+      S3_ACCESS_KEY: "${MINIO_ROOT_USER:-minioadmin}"
+      S3_SECRET_KEY: "${MINIO_ROOT_PASSWORD:-minioadmin}"
+      S3_FORCE_PATH_STYLE: "true"
+      <<: *analytics-env
+    volumes:
+      - ./analytics:/opt/dbt-af/analytics:ro
+    ports:
+      - "${LIGHTDASH_HOST_PORT:-18083}:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"fetch('http://127.0.0.1:8080/api/v1/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\""]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+    depends_on:
+      lightdash-db:
+        condition: service_healthy
+      minio-create-bucket:
+        condition: service_completed_successfully
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  lightdash-db:
+    image: postgres:16-alpine
+    profiles:
+      - lightdash
+    mem_limit: "${LIGHTDASH_DB_MEM_LIMIT:-256m}"
+    cpus: "${LIGHTDASH_DB_CPUS:-0.5}"
+    environment:
+      POSTGRES_USER: lightdash
+      POSTGRES_PASSWORD: "${LIGHTDASH_POSTGRES_PASSWORD:-lightdash}"
+      POSTGRES_DB: lightdash
+    volumes:
+      - lightdash-db-volume:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U lightdash -d lightdash"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    restart: unless-stopped
+
+  minio:
+    image: minio/minio:RELEASE.2025-09-07T16-13-09Z
+    profiles:
+      - lightdash
+    mem_limit: "${MINIO_MEM_LIMIT:-256m}"
+    cpus: "${MINIO_CPUS:-0.5}"
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: "${MINIO_ROOT_USER:-minioadmin}"
+      MINIO_ROOT_PASSWORD: "${MINIO_ROOT_PASSWORD:-minioadmin}"
+    volumes:
+      - minio-data-volume:/data
+    ports:
+      - "${MINIO_API_HOST_PORT:-19000}:9000"
+      - "${MINIO_CONSOLE_HOST_PORT:-19001}:9001"
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    restart: unless-stopped
+
+  minio-create-bucket:
+    image: minio/mc:RELEASE.2025-08-13T08-35-41Z
+    profiles:
+      - lightdash
+    depends_on:
+      minio:
+        condition: service_healthy
+    environment:
+      MINIO_ROOT_USER: "${MINIO_ROOT_USER:-minioadmin}"
+      MINIO_ROOT_PASSWORD: "${MINIO_ROOT_PASSWORD:-minioadmin}"
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set local http://minio:9000 $${MINIO_ROOT_USER} $${MINIO_ROOT_PASSWORD};
+      mc mb --ignore-existing local/lightdash;
+      "
+
+  lightdash-deploy:
+    build:
+      context: .
+      dockerfile: analytics/Dockerfile
+    working_dir: /workspace
+    profiles:
+      - deploy
+    environment:
+      <<: *analytics-env
+      LIGHTDASH_URL: "${LIGHTDASH_URL:-http://lightdash:8080}"
+      LIGHTDASH_API_KEY: "${LIGHTDASH_API_KEY:-}"
+      LIGHTDASH_PROJECT: "${LIGHTDASH_PROJECT:-}"
+    volumes:
+      - ./analytics/investment_signals_dbt:/workspace
+    depends_on:
+      lightdash:
+        condition: service_healthy
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    command:
+      - /bin/sh
+      - -lc
+      - |
+        if [ -z "$$LIGHTDASH_API_KEY" ]; then
+          echo "LIGHTDASH_API_KEY is required for non-interactive deploy";
+          exit 2;
+        fi
+        dbt build --project-dir . --profiles-dir . --target investment_signals
+        if [ -n "$$LIGHTDASH_PROJECT" ]; then
+          npx -y @lightdash/cli@0.3161.0 deploy --project "$$LIGHTDASH_PROJECT" --target investment_signals --profiles-dir . --project-dir . --assume-yes --skip-warehouse-catalog
+          npx -y @lightdash/cli@0.3161.0 upload --project "$$LIGHTDASH_PROJECT" --force --validate -p lightdash
+        else
+          npx -y @lightdash/cli@0.3161.0 deploy --create "Investment Signals" --target investment_signals --profiles-dir . --project-dir . --assume-yes --skip-warehouse-catalog
+          npx -y @lightdash/cli@0.3161.0 upload --force --validate -p lightdash
+        fi
+
+volumes:
+  dagster-home-volume:
+  lightdash-db-volume:
+  minio-data-volume:

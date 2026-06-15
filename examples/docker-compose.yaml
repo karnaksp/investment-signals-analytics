@@ -212,8 +212,8 @@ services:
       SITE_URL: "http://localhost:${ANALYTICS_DASHBOARD_HOST_PORT:-18083}"
       PORT: 8080
       SCHEDULER_ENABLED: "false"
-      DBT_PROJECT_DIR: /opt/dbt-af/dags
-      DBT_PROFILES_DIR: /opt/dbt-af/dags
+      DBT_PROJECT_DIR: /opt/dbt-af/lightdash/investment_signals_dbt
+      DBT_PROFILES_DIR: /opt/dbt-af/lightdash/investment_signals_dbt
       DBT_TARGET: investment_signals
       S3_ENDPOINT: http://minio:9000
       S3_PUBLIC_ENDPOINT: http://localhost:${MINIO_API_HOST_PORT:-19000}
@@ -229,6 +229,7 @@ services:
       INVESTMENT_SIGNALS_POSTGRES_PASSWORD: "${INVESTMENT_SIGNALS_POSTGRES_PASSWORD:-signal_engine}"
     volumes:
       - ./dags:/opt/dbt-af/dags:ro
+      - ./lightdash:/opt/dbt-af/lightdash:ro
     ports:
       - "${ANALYTICS_DASHBOARD_HOST_PORT:-18083}:8080"
     healthcheck:

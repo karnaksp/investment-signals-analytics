@@ -1,5 +1,7 @@
 .idea/
 logs/
+target/
+.user.yml
 
 **/__pycache__/**
 
@@ -7,3 +9,8 @@ logs/
 
 **/dist/
 **/build/
+
+# dbt runtime artifacts for local analytics projects.
+analytics/**/logs/
+analytics/**/target/
+analytics/**/.user.yml

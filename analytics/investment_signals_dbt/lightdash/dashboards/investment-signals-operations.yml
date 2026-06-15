@@ -1,0 +1,151 @@
+name: Операционный обзор сигналов
+spaceSlug: investment-signals-analytics
+version: 1
+slug: investment-signals-operations
+description: "Панель контроля live-сигналов: качество, доставка, решения и ручной разбор."
+updatedAt: "2026-06-15T00:00:00.000Z"
+tiles:
+  - type: markdown
+    properties:
+      title: Как читать панель
+      hideTitle: false
+      content: |
+        ### Главный вопрос
+
+        Эта панель отвечает не на вопрос "сколько сигналов сгенерировано", а на вопрос "какие сигналы можно разбирать и где система теряет полезные идеи".
+
+        Порядок чтения: сначала операционные выводы, затем приоритеты действий, потом узкие места доставки и только после этого рабочий список конкретных сигналов.
+    tabUuid: null
+    tileSlug: how-to-read-investment-signals
+    x: 0
+    y: 0
+    w: 36
+    h: 3
+  - type: sql_chart
+    properties:
+      title: Операционные выводы
+      hideTitle: false
+      chartName: Операционные выводы
+      chartSlug: operations-insights
+    tabUuid: null
+    tileSlug: operations-insights
+    x: 0
+    y: 3
+    w: 36
+    h: 5
+  - type: sql_chart
+    properties:
+      title: Приоритеты действий
+      hideTitle: false
+      chartName: Приоритеты действий
+      chartSlug: action-priority
+    tabUuid: null
+    tileSlug: action-priority
+    x: 0
+    y: 8
+    w: 18
+    h: 7
+  - type: sql_chart
+    properties:
+      title: Как система принимает решения
+      hideTitle: false
+      chartName: Распределение решений
+      chartSlug: decision-mix
+    tabUuid: null
+    tileSlug: decision-mix
+    x: 18
+    y: 8
+    w: 18
+    h: 7
+  - type: sql_chart
+    properties:
+      title: Где теряется доставка
+      hideTitle: false
+      chartName: Воронка доставки
+      chartSlug: delivery-bottleneck
+    tabUuid: null
+    tileSlug: delivery-bottleneck
+    x: 0
+    y: 15
+    w: 18
+    h: 7
+  - type: sql_chart
+    properties:
+      title: Доставка по типам сигналов
+      hideTitle: false
+      chartName: Доставка по типам сигналов
+      chartSlug: delivery-by-signal-type
+    tabUuid: null
+    tileSlug: delivery-by-signal-type
+    x: 18
+    y: 15
+    w: 18
+    h: 7
+  - type: sql_chart
+    properties:
+      title: Сильные сигналы, заблокированные правилами
+      hideTitle: false
+      chartName: Сильные заблокированные сигналы
+      chartSlug: blocked-high-quality
+    tabUuid: null
+    tileSlug: blocked-high-quality
+    x: 0
+    y: 22
+    w: 18
+    h: 8
+  - type: sql_chart
+    properties:
+      title: Какие типы сигналов выглядят сильнее
+      hideTitle: false
+      chartName: Лучшие типы сигналов
+      chartSlug: top-signal-types
+    tabUuid: null
+    tileSlug: top-signal-types
+    x: 18
+    y: 22
+    w: 18
+    h: 8
+  - type: sql_chart
+    properties:
+      title: Рабочий список для ручной проверки
+      hideTitle: false
+      chartName: Рабочий список сигналов
+      chartSlug: live-trading-watchlist
+    tabUuid: null
+    tileSlug: live-trading-watchlist
+    x: 0
+    y: 30
+    w: 36
+    h: 10
+  - type: sql_chart
+    properties:
+      title: Качество типов сигналов по тикерам
+      hideTitle: false
+      chartName: Качество типов сигналов
+      chartSlug: signal-type-quality
+    tabUuid: null
+    tileSlug: signal-type-quality
+    x: 0
+    y: 40
+    w: 36
+    h: 10
+  - type: sql_chart
+    properties:
+      title: Что блокируется политикой доставки
+      hideTitle: false
+      chartName: Сигналы, ограниченные правилами
+      chartSlug: delivery-policy-blocks
+    tabUuid: null
+    tileSlug: delivery-policy-blocks
+    x: 0
+    y: 50
+    w: 36
+    h: 8
+filters:
+  metrics: []
+  dimensions: []
+  tableCalculations: []
+tabs: []
+config:
+  isDateZoomDisabled: true
+  dateZoomGranularities: []

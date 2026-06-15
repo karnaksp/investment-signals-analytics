@@ -1,84 +1,108 @@
-# dbt-af: надежный manual rerun DAG
+# Investment Signals Analytics: от событий к операционному решению
 
-## Статус
+## Задача
 
-Этот репозиторий — fork `Toloka/dbt-af`. Добавленный слой не претендует на ownership исходного проекта; он фиксирует конкретный reliability scenario вокруг ручного запуска dbt-модели через Airflow.
+`investment-signals` генерирует live-сигналы по рынку, но для эксплуатации важно не только увидеть факт сигнала.
+Нужно понимать:
 
-Текущий слой состоит из двух частей:
+- какие сигналы достаточно качественные для ручного разбора;
+- какие сигналы действительно доставляются в канал уведомлений;
+- где правила доставки блокируют сильные события;
+- какие типы сигналов стоит развивать, а какие создают шум.
 
-- manual `<dbt_project_name>_dbt_run_model` Airflow DAG стал устойчивым к empty/default/null Extra Arguments;
-- локальный Docker Compose example стал воспроизводимым orchestration smoke demo для Airflow/dbt path.
+Этот репозиторий закрывает аналитический контур вокруг этих вопросов: берет live-данные из Postgres, пересчитывает dbt-витрины,
+обновляет их через Dagster и публикует Lightdash-панель для ежедневного контроля.
 
-## Проблема
+## Почему это отдельный контур
 
-`dbt-af` умеет генерировать manual DAG `<dbt_project_name>_dbt_run_model`. Data engineers используют его, чтобы rerun-ить одну модель, backfill-ить конкретный interval или проверить новую модель без ожидания regular schedule.
+Аналитика сигналов не должна жить внутри production-сервиса уведомлений. У нее другой жизненный цикл:
 
-Manual trigger form содержит поле **Extra Arguments** для optional dbt CLI flags. На практике пользователи часто оставляют поле без изменений, очищают его до `{}` или отправляют `null` через Airflow UI/API. Такой path должен означать “no extra options”, а реальные custom dbt options должны продолжать проходить в command.
+- можно безопасно менять правила scoring и витрины без риска сломать ingestion;
+- можно запускать пересчет вручную или по расписанию;
+- можно версионировать dbt-модели и Lightdash dashboard как код;
+- можно отделить operational API от аналитических таблиц и BI-интерфейса.
 
-## Добавленный reliability layer
-
-- Исправлен `build_dbt_run_model_bash_extra_options`: `None`, `{}` и default placeholder игнорируются.
-- Сохранена поддержка custom options вроде `{"profiles-dir": "/tmp/profiles", "--option": "custom-value"}`.
-- Добавлено regression coverage для empty/default input и custom dbt CLI options.
-- Manual DAG behavior задокументирован в main configuration docs и basic project example.
-- Docker Compose demo bootstrap доведен до Airflow database migration и pool creation.
-- Добавлен local smoke script: он builds dbt manifest, starts Airflow, checks DAG discovery и проверяет manual `dbt_af_project_dbt_run_model` task list.
-
-## Architecture Slice
+## Data flow
 
 ```mermaid
-flowchart LR
-    Manifest["dbt manifest.json"] --> Compiler["dbt-af DAG compiler"]
-    Compiler --> Scheduled["Scheduled domain DAGs"]
-    Compiler --> Manual["Manual dbt_run_model DAG"]
-    Airflow["Airflow UI / API"] --> Manual
-    Manual --> Args["Extra Arguments normalization"]
-    Args --> Command["dbt run command"]
-    Command --> Smoke["Docker Compose smoke demo"]
+flowchart TD
+    Raw["public.market_signals"] --> Stg["stg_market_signals"]
+    Stg --> Watchlist["mart_live_trading_watchlist"]
+    Stg --> Quality["mart_signal_type_quality"]
+    Dagster["Dagster schedule"] --> Build["dbt build"]
+    Build --> Stg
+    Watchlist --> Dashboard["Lightdash: Операционный обзор сигналов"]
+    Quality --> Dashboard
 ```
 
-Слой намеренно узкий: upstream DAG-generation model не переписывается. Исправлен manual rerun path, который data engineers используют для one-off model validation, backfills и debugging.
+## Витрины
 
-## Demo scenario
+### `stg_market_signals`
 
-1. Открыть generated `<dbt_project_name>_dbt_run_model` DAG в Airflow.
-2. Заполнить `Model Selector`, `Interval Start Datetime` и `Interval End Datetime`.
-3. Оставить **Extra Arguments** без изменений, очистить до `{}` или отправить как `null`.
-4. Trigger the DAG.
-5. Expected behavior: dbt command собирается без extra CLI options и не падает при обработке empty optional arguments.
-6. Добавлять custom JSON только когда нужны реальные dbt options:
+Нормализует live-события:
 
-```json
-{
-  "profiles-dir": "/tmp/profiles",
-  "--option": "custom-value"
-}
-```
+- приводит payload к аналитическим колонкам;
+- выделяет `quality_score`, `delivery_status`, `delivery_reason`;
+- сохраняет исходные признаки сигнала: тикер, тип, серьезность, z-score, окно наблюдения.
 
-Expected command behavior: оба key нормализуются в dbt CLI options, включая missing `--` prefix для `profiles-dir`.
+### `mart_live_trading_watchlist`
 
-## Validation
+Формирует рабочий список сигналов:
 
-Focused local check:
+- считает `decision_score`;
+- присваивает итоговое решение: `кандидат`, `наблюдать`, `пропустить`, `заблокировать_политикой`;
+- объясняет причину решения в `decision_reason`;
+- показывает, какие события стоит разобрать вручную.
+
+### `mart_signal_type_quality`
+
+Агрегирует качество типов сигналов по тикеру:
+
+- число сигналов;
+- доставленные и ограниченные события;
+- среднее качество;
+- средний модуль z-score;
+- статус применимости типа сигнала.
+
+## Что показывает дашборд
+
+Главный текущий вывод из локального стенда: доставка является главным ограничением. В данных есть сильные сигналы, но большая
+часть из них не попадает в уведомления из-за политики доставки.
+
+Дашборд отвечает на четыре вопроса:
+
+1. Сколько сигналов обнаружено, доставлено и попало в кандидаты.
+2. Как система распределяет решения после scoring.
+3. Какие типы сигналов выглядят надежнее остальных.
+4. Какие сильные сигналы блокируются правилами доставки.
+
+![Операционный обзор сигналов](docs/static/product/lightdash-dashboard-overview.jpg)
+
+![Диагностика сигналов](docs/static/product/lightdash-dashboard-diagnostics.jpg)
+
+## Эксплуатационные решения
+
+По этому дашборду можно принимать конкретные решения:
+
+- ослабить или уточнить delivery cooldown для сильных `volume_spike`;
+- вынести `trade_rate_spike` в отдельный канал ручной проверки;
+- оставить `spread_widening` как наблюдаемый сигнал до улучшения качества;
+- смотреть не только число сигналов, но и долю доставленных событий.
+
+## Проверка
+
+Локальный smoke path:
 
 ```bash
-poetry run pytest -q tests/test_common_utils.py
+docker compose run --rm dbt
+docker compose up -d dagster
+docker compose --profile lightdash up -d lightdash
+docker compose --profile lightdash --profile deploy run --rm lightdash-deploy
 ```
 
-Docker Compose demo check:
+Ожидаемый результат:
 
-```bash
-docker compose -f examples/docker-compose.yaml config --quiet
-cd examples && ./smoke_orchestration.sh
-```
-
-Full project check used by CI:
-
-```bash
-poetry run pytest -q -s -vv --log-cli-level=INFO --cov=dbt_af --cov-report=term --run-airflow-tasks tests
-ruff check
-```
-
-## Роль проекта
-
-Этот fork ограничен manual `dbt_run_model` reliability path и локальным Airflow/dbt orchestration smoke demo. Он не претендует на ownership исходного `Toloka/dbt-af`; ценность слоя в проверяемом исправлении, regression tests и runnable local evidence.
+- dbt проходит source/model tests;
+- Dagster показывает job `investment_signals_refresh_job`;
+- Lightdash открывает dashboard `Операционный обзор сигналов`;
+- dashboard показывает ключевые показатели, распределение решений, узкие места доставки и детальные таблицы.

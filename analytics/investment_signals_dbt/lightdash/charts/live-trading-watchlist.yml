@@ -1,0 +1,80 @@
+contentType: sql_chart
+description: Последние сигналы, отсортированные по применимости для ручной проверки.
+name: Рабочий список сигналов
+sql: |
+  select
+      detected_at,
+      ticker,
+      signal_type,
+      severity,
+      quality_score,
+      decision_score,
+      delivery_status,
+      trading_decision,
+      decision_reason
+  from investment_signals_analytics.mart_live_trading_watchlist
+  order by detected_at desc, decision_score desc
+  limit 50
+limit: 500
+chartKind: table
+config:
+  type: table
+  columns:
+    detected_at:
+      visible: true
+      reference: detected_at
+      label: Время
+      frozen: true
+      order: 0
+    ticker:
+      visible: true
+      reference: ticker
+      label: Тикер
+      frozen: true
+      order: 1
+    signal_type:
+      visible: true
+      reference: signal_type
+      label: Тип сигнала
+      frozen: true
+      order: 2
+    severity:
+      visible: true
+      reference: severity
+      label: Серьезность
+      frozen: true
+      order: 3
+    quality_score:
+      visible: true
+      reference: quality_score
+      label: Качество
+      frozen: true
+      order: 4
+    decision_score:
+      visible: true
+      reference: decision_score
+      label: Оценка решения
+      frozen: true
+      order: 5
+    delivery_status:
+      visible: true
+      reference: delivery_status
+      label: Доставка
+      frozen: true
+      order: 6
+    trading_decision:
+      visible: true
+      reference: trading_decision
+      label: Решение
+      frozen: true
+      order: 7
+    decision_reason:
+      visible: true
+      reference: decision_reason
+      label: Причина
+      frozen: true
+      order: 8
+slug: live-trading-watchlist
+spaceSlug: investment-signals-analytics
+version: 1
+updatedAt: "2026-06-15T00:00:00.000Z"

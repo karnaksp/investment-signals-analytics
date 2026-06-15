@@ -1,0 +1,73 @@
+name: Analytics stack
+
+on:
+  pull_request:
+    branches: [ main ]
+  push:
+    branches: [ main ]
+
+jobs:
+  dbt-lightdash:
+    name: dbt and Lightdash assets
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: signal_engine
+          POSTGRES_PASSWORD: signal_engine
+          POSTGRES_DB: signal_engine
+        ports:
+          - 35432:5432
+        options: >-
+          --health-cmd "pg_isready -U signal_engine -d signal_engine"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      INVESTMENT_SIGNALS_POSTGRES_HOST: 127.0.0.1
+      INVESTMENT_SIGNALS_POSTGRES_PORT: 35432
+      INVESTMENT_SIGNALS_POSTGRES_DB: signal_engine
+      INVESTMENT_SIGNALS_POSTGRES_USER: signal_engine
+      INVESTMENT_SIGNALS_POSTGRES_PASSWORD: signal_engine
+      INVESTMENT_SIGNALS_POSTGRES_SCHEMA: investment_signals_analytics
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dbt and validation dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install dbt-core==1.11.11 dbt-postgres==1.10.0 pyyaml==6.0.2
+
+      - name: Validate Docker Compose
+        run: docker compose config --quiet
+
+      - name: Seed market signals
+        run: |
+          PGPASSWORD="$INVESTMENT_SIGNALS_POSTGRES_PASSWORD" \
+            psql \
+              -h "$INVESTMENT_SIGNALS_POSTGRES_HOST" \
+              -p "$INVESTMENT_SIGNALS_POSTGRES_PORT" \
+              -U "$INVESTMENT_SIGNALS_POSTGRES_USER" \
+              -d "$INVESTMENT_SIGNALS_POSTGRES_DB" \
+              -v ON_ERROR_STOP=1 \
+              -f analytics/ci/init_market_signals.sql
+
+      - name: Build dbt marts
+        run: |
+          dbt build \
+            --project-dir analytics/investment_signals_dbt \
+            --profiles-dir analytics/investment_signals_dbt \
+            --target investment_signals
+
+      - name: Validate Lightdash assets
+        run: python scripts/validate_lightdash_assets.py analytics/investment_signals_dbt/lightdash
