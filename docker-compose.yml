@@ -1,4 +1,4 @@
-name: dbt-af-analytics
+name: investment-signals-analytics
 
 x-analytics-env: &analytics-env
   INVESTMENT_SIGNALS_POSTGRES_HOST: "${INVESTMENT_SIGNALS_POSTGRES_HOST:-host.docker.internal}"
@@ -30,8 +30,8 @@ services:
     environment:
       <<: *analytics-env
       DAGSTER_HOME: /opt/dagster
-      DBT_PROJECT_DIR: /opt/dbt-af/analytics/investment_signals_dbt
-      DBT_PROFILES_DIR: /opt/dbt-af/analytics/investment_signals_dbt
+      DBT_PROJECT_DIR: /opt/investment-signals-analytics/analytics/investment_signals_dbt
+      DBT_PROFILES_DIR: /opt/investment-signals-analytics/analytics/investment_signals_dbt
       DBT_TARGET: investment_signals
     volumes:
       - ./analytics/investment_signals_dbt:/workspace
@@ -84,7 +84,7 @@ services:
       S3_FORCE_PATH_STYLE: "true"
       <<: *analytics-env
     volumes:
-      - ./analytics:/opt/dbt-af/analytics:ro
+      - ./analytics:/opt/investment-signals-analytics/analytics:ro
     ports:
       - "${LIGHTDASH_HOST_PORT:-18083}:8080"
     healthcheck:

@@ -1,6 +1,6 @@
-# dbt-af: аналитика торговых сигналов
+# investment-signals-analytics
 
-`dbt-af` собирает аналитический контур вокруг сервиса
+`investment-signals-analytics` собирает аналитический контур вокруг сервиса
 [`investment-signals`](https://github.com/karnaksp/investment-signals).
 
 Проект берет потоковые сигналы из Postgres, строит dbt-витрины, обновляет их через Dagster и показывает готовую
