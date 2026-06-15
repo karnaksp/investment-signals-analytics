@@ -11,7 +11,7 @@
 # dbt-af: distributed run of dbt models using Airflow
 
 > Fork note: this fork includes a focused reliability contribution for the manual `dbt_run_model` DAG.
-> See [CASE_STUDY.md](CASE_STUDY.md) for the portfolio case and validation details.
+> See [CASE_STUDY.md](CASE_STUDY.md) for the reliability scope, reproducible demo and validation details.
 
 ## Overview
 

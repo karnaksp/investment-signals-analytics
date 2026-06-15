@@ -70,8 +70,8 @@ poetry run pytest -q -s -vv --log-cli-level=INFO --cov=dbt_af --cov-report=term 
 ruff check
 ```
 
-## Portfolio Role
+## Project Role
 
-This repository is now useful as a secondary Data Engineering portfolio case: it shows an open-source reliability fix
-plus a reproducible Airflow/dbt orchestration demo. Keep it below production projects, but it no longer needs to be
-hidden as a one-off bugfix fork.
+This repository is a secondary Data Engineering contribution case: it shows an open-source reliability fix plus a
+reproducible Airflow/dbt orchestration demo. It should be presented as a targeted fork contribution, not as an original
+production system.
