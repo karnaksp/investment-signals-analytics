@@ -1,4 +1,0 @@
-a:
-  +tags: 'different_sched'
-  +description: |
-    a1@hourly -> a2@daily -> a3@hourly

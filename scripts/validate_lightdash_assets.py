@@ -85,7 +85,7 @@ def validate_assets(root: Path) -> None:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description='Проверяет Lightdash dashboard-as-code.')
+    parser = argparse.ArgumentParser(description='Проверяет настройки панелей Lightdash.')
     parser.add_argument(
         'root',
         nargs='?',

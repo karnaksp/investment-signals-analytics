@@ -1,5 +1,0 @@
-instrument_id,ticker,asset_class,exchange,currency,is_active
-SBER,SBER,stock,MOEX,RUB,true
-GAZP,GAZP,stock,MOEX,RUB,true
-LKOH,LKOH,stock,MOEX,RUB,true
-IMOEX,IMOEX,index,MOEX,RUB,true

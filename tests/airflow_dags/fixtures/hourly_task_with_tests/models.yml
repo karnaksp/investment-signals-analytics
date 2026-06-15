@@ -1,5 +1,0 @@
-+description: |
-  task with tests:
-  - not_null - small (default)
-  - unique - medium
-  - accepted_values - large

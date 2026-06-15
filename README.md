@@ -1,17 +1,17 @@
-# dbt-af: аналитика live-сигналов
+# dbt-af: аналитика торговых сигналов
 
 `dbt-af` собирает аналитический контур вокруг сервиса
 [`investment-signals`](https://github.com/karnaksp/investment-signals).
 
-Проект берет live-сигналы из Postgres, строит dbt-витрины, обновляет их через Dagster и показывает готовый
-Lightdash-дашборд для разбора качества сигналов, доставки и ручных действий.
+Проект берет потоковые сигналы из Postgres, строит dbt-витрины, обновляет их через Dagster и показывает готовую
+панель Lightdash для разбора качества сигналов, доставки уведомлений и ручных действий.
 
 ![Операционный обзор сигналов](docs/static/product/lightdash-dashboard-overview.jpg)
 
 ## Зачем это нужно
 
-`investment-signals` генерирует рыночные сигналы. Этого мало: нужно понимать, какие из них дошли до уведомлений,
-какие заблокированы правилами доставки, где есть шум и что стоит разобрать вручную.
+`investment-signals` генерирует рыночные сигналы. Этого мало для эксплуатации: нужно понимать, какие сигналы дошли
+до уведомлений, какие заблокированы правилами доставки, где появляется шум и что стоит разобрать вручную.
 
 Этот репозиторий отвечает на четыре практических вопроса:
 
@@ -37,7 +37,7 @@ flowchart LR
 
 - `analytics/investment_signals_dbt` - dbt-проект с витринами и тестами.
 - `analytics/dagster` - job и расписание пересчета витрин.
-- `analytics/investment_signals_dbt/lightdash` - дашборд, SQL-чарты и пространство Lightdash как код.
+- `analytics/investment_signals_dbt/lightdash` - панель, SQL-графики и настройки Lightdash как код.
 - `docker-compose.yml` - локальный запуск dbt, Dagster, Lightdash, Postgres Lightdash и MinIO.
 
 ## Быстрый запуск
@@ -76,7 +76,7 @@ docker compose --profile lightdash up -d lightdash
 make dbt-build          # пересчитать dbt-витрины
 make dagster-up         # поднять Dagster
 make lightdash-up       # поднять Lightdash
-make lightdash-validate # проверить Lightdash dashboard-as-code
+make lightdash-validate # проверить настройки панели Lightdash
 make qa                 # compose + dbt tests + Lightdash validation + healthcheck
 ```
 
@@ -95,7 +95,7 @@ LIGHTDASH_PROJECT=...
 docker compose --profile lightdash --profile deploy run --rm lightdash-deploy
 ```
 
-Команда выполнит `dbt build`, загрузит проект в Lightdash и применит dashboard-as-code.
+Команда выполнит `dbt build`, загрузит проект в Lightdash и применит сохраненные настройки панели.
 
 ## Проверки качества
 

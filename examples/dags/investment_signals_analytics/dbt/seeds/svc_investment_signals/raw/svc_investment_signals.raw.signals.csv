@@ -1,7 +1,0 @@
-signal_id,instrument_id,signal_ts,signal_type,score,reason
-sig-001,SBER,2026-06-10 10:02:00,bullish_momentum,0.82,price_and_volume_breakout
-sig-002,GAZP,2026-06-10 10:03:00,bearish_momentum,0.74,price_breakdown
-sig-003,LKOH,2026-06-10 10:04:00,bullish_momentum,0.88,volume_spike
-sig-004,IMOEX,2026-06-10 10:04:00,bullish_momentum,0.64,index_confirmation
-sig-005,SBER,2026-06-10 18:40:00,bullish_momentum,0.57,late_session_retest
-sig-006,GAZP,2026-06-10 18:40:00,bearish_momentum,0.79,weak_close
